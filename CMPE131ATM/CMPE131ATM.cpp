@@ -93,7 +93,7 @@ void handleDeposit() {
     	cout << "Enter deposit amount: $";
     	cin >> depositAmount;
 	}
-	while (!depositAmount); // TODO validate amount
+	while (!depositAmount); // TODO validate amount (positive)
 	
 	// TODO: protect against overflowing double
 
@@ -108,7 +108,7 @@ void handleWithdrawal() {
     	cout << "Enter withdrawal amount: $";
     	cin >> withdrawalAmount;
 	}
-	while (!withdrawalAmount); // TODO validate amount
+	while (!withdrawalAmount); // TODO validate amount (positive)
 
 	// TODO: protect against overdrafting of the account
 
