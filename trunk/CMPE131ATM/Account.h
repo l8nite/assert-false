@@ -24,4 +24,7 @@ protected:
 	int customer_id;
 	double balance;
 
+public:
+	void populate_from_database(int argc, char** argv, char** azColNames);
+
 };
