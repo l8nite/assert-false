@@ -25,6 +25,14 @@ void Customer::setAccount(Account* account) {
 	this->account = account;
 }
 
+int Customer::getCustomerID(void) {
+	return this->customer_id;
+}
+
+void Customer::setCustomerID(int customerID) {
+	this->customer_id = customerID;
+}
+
 int Customer::getIsAuthorized(void) {
 	return this->is_authorized;
 }

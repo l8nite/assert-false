@@ -5,25 +5,21 @@ public:
 	Account(void);
 
 public:
-	int getCustomerID();
-	void setCustomerID(int customerID);
+	int getAccountID(void);
+	void setAccountID(int accountID);
 
-	double getBalance ();
-	void setBalance(double balance);
+	int getBalance(void);
+	void setBalance(int balance);
 
 	// returns balance after withdrawal or deposit
-	double withdrawFunds(double withdrawalAmount);
-	double depositFunds(double depositAmount);
+	int withdrawFunds(int withdrawalAmount);
+	int depositFunds(int depositAmount);
 
 	// prints information about the account
 	void printSummary();
 	void printHistory();
 
 protected:
-	int customer_id;
-	double balance;
-
-public:
-	void populate_from_database(int argc, char** argv, char** azColNames);
-
+	int account_id;
+	int balance;
 };

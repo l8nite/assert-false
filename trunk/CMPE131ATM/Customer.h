@@ -8,8 +8,11 @@ public: // constructors
 	virtual ~Customer(void);
 
 public: // instance methods
-	Account* getAccount();
+	Account* getAccount(void);
 	void setAccount(Account* account);
+
+	int getCustomerID(void);
+	void setCustomerID(int customerID);
 
 	int getIsAuthorized();
 	void setIsAuthorized(int isAuthorized);
