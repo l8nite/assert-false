@@ -19,6 +19,9 @@
     <None Include="sqlite3.def">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="cmpe131atm.sqlite">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
