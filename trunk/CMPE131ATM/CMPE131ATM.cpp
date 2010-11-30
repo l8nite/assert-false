@@ -171,7 +171,7 @@ void applicationMenuLoop(Customer* customer, sqlite3* dbh) {
 	}
 	while (menu_choice < 1 || menu_choice > 5); // TODO: error on invalid?
 
-	switch (menu_choice) {
+	switch (menu_choice) { // options from the menu above
 	case 1:
 		customer->getAccount()->printSummary();
 		break;
