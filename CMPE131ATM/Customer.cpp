@@ -3,10 +3,8 @@
 
 Customer::Customer(void) {
 	this->account = NULL;
-}
-
-Customer::Customer(int accountID) {
-	this->account = new Account(accountID);
+	this->customer_id = 0;
+	this->is_authorized = 0;
 }
 
 Customer::~Customer(void) {
@@ -25,4 +23,12 @@ void Customer::setAccount(Account* account) {
 	}
 
 	this->account = account;
+}
+
+int Customer::getIsAuthorized(void) {
+	return this->is_authorized;
+}
+
+void Customer::setIsAuthorized(int isAuthorized) {
+	this->is_authorized = isAuthorized;
 }

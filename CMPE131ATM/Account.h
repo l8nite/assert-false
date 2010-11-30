@@ -3,7 +3,6 @@ class Account
 {
 public:
 	Account(void);
-	Account(int customerID);
 
 public:
 	int getCustomerID();

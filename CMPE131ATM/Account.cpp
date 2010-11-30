@@ -1,57 +1,18 @@
 #include "StdAfx.h"
 #include "Account.h"
 #include <iostream>
-#include "sqlite3.h"
-
-static int account_select_thunk(void* obj, int argc, char** argv, char** azColName) {
-	((Account*)obj)->populate_from_database(argc, argv, azColName);
-	return 0;
-}
 
 Account::Account(void) {
 	this->customer_id = 0;
 	this->balance = 0.0;
 }
 
-Account::Account(int customerID) {
-	this->setCustomerID(customerID);
-}
-
 int Account::getCustomerID(void) {
 	return this->customer_id;
 }
 
-void Account::populate_from_database(int argc, char** argv, char** azColName) {
-	this->balance = strtod(argv[2],NULL);
-}
-
 void Account::setCustomerID(int customerID) {
 	this->customer_id = customerID;
-	printf("Loading customer ID: %i\n", customerID);
-
-	sqlite3 *db;
-	char sql[512];
-	sprintf_s(sql, "SELECT * FROM accounts WHERE customer=%d", customerID);
-	char* err;
-	int rc;
-
-	rc = sqlite3_open("cmpe131atm.sqlite", &db);
-	if (rc) {
-		fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-		return;
-	}
-	else {
-		fprintf(stderr, "Opened database successfully\n");
-	}
-
-	rc = sqlite3_exec(db, sql, account_select_thunk, this, &err);
-	if (rc != SQLITE_OK) {
-		fprintf(stderr, "SQL error: %s\n", err);
-		sqlite3_free(err);
-		return;
-	}
-
-	sqlite3_close(db);
 }
 
 double Account::getBalance (void) {
