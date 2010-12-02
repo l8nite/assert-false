@@ -4,6 +4,7 @@
 
 Account::Account(void) {
 	this->balance = 0;
+	this->account_id = 0;
 }
 
 int Account::getAccountID(void) {
@@ -34,12 +35,9 @@ int Account::depositFunds(int depositAmount) {
 }
 
 void Account::printSummary(void) {
-	// TODO: should accounts have an ID separate from the customer ID? 
-	//       probably not necessary for release 1 since we only allow one account per customer anyway
 	printf("Account #: %d -- Current Balance: $%.2f\n", this->account_id, (this->balance / 100.0f));
 }
 
 void Account::printHistory(void) {
-	// TODO: load transaction history
 	std::cout << "Account history goes here" << std::endl;
 }

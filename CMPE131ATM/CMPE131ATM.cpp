@@ -6,6 +6,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <assert.h>
+#include <time.h>
 #include "Customer.h"
 #include "sqlite3.h"
 
@@ -21,8 +22,11 @@ Customer* loginCustomer(sqlite3* dbh);
 void applicationMenuLoop(Customer* customer, sqlite3* dbh);
 
 // handles deposit/withdrawal user interaction
-void handleDeposit(Customer* customer, sqlite3* dbh);
-void handleWithdrawal(Customer* customer, sqlite3* dbh);
+void handleDeposit(Account* account, sqlite3* dbh);
+void handleWithdrawal(Account* account, sqlite3* dbh);
+
+// handles printing out an account's transaction history
+void handleTransactionHistory(Account* account, sqlite3* dbh);
 
 
 /*
@@ -32,7 +36,16 @@ void handleWithdrawal(Customer* customer, sqlite3* dbh);
 static int _db_load_customer(void* customer, 
 	int argc, char** argv, char** cols);
 
-void _update_account_balance(sqlite3* dbh, Customer* customer, int balance);
+// callback used by sqlite3_exec to print out a Customer's transactions
+static int _db_view_transaction(void* unused,
+	int argc, char** argv, char** cols);
+
+// updates the database for an account balance change
+void _update_account_balance(Account* account, int balance, sqlite3* dbh);
+
+// adds a new transaction to the transactions table
+void _update_transaction_log(Account* account, char* txType, int amount, 
+	sqlite3* dbh);
 
 static int _repeatedly_prompt_user_for_positive_numeric_input
 	(const char* prompt, const char* error, int isMoney);
@@ -193,13 +206,13 @@ void applicationMenuLoop(Customer* customer, sqlite3* dbh) {
 		customer->getAccount()->printSummary();
 		break;
 	case 2:
-		customer->getAccount()->printHistory();
+		handleTransactionHistory(customer->getAccount(), dbh);
 		break;
 	case 3:
-		handleDeposit(customer, dbh);	
+		handleDeposit(customer->getAccount(), dbh);	
 		break;
 	case 4:
-		handleWithdrawal(customer, dbh);
+		handleWithdrawal(customer->getAccount(), dbh);
 		break;
 	case 5:
 		return;
@@ -211,7 +224,7 @@ void applicationMenuLoop(Customer* customer, sqlite3* dbh) {
 
 
 // handle gathering user input for a deposit and updating the database
-void handleDeposit(Customer* customer, sqlite3* dbh) {
+void handleDeposit(Account* account, sqlite3* dbh) {
 	int deposit_amount = _repeatedly_prompt_user_for_positive_numeric_input(
 		"Enter deposit amount: $", "Invalid deposit.  Try again.", 1);
 
@@ -220,14 +233,15 @@ void handleDeposit(Customer* customer, sqlite3* dbh) {
 		return;
 	}
 
-	int current_balance = customer->getAccount()->getBalance();
-	_update_account_balance(dbh, customer, current_balance + deposit_amount);
+	int current_balance = account->getBalance();
+	_update_account_balance(account, current_balance + deposit_amount, dbh);
+	_update_transaction_log(account, "Deposit", deposit_amount, dbh);
 }
 
 
 // handle gathering user input for a withdrawal and updating the database
-void handleWithdrawal(Customer* customer, sqlite3* dbh) {
-	int current_balance = customer->getAccount()->getBalance();
+void handleWithdrawal(Account* account, sqlite3* dbh) {
+	int current_balance = account->getBalance();
 
 	enter_withdrawal_amount:
 	int withdrawal_amount = _repeatedly_prompt_user_for_positive_numeric_input(
@@ -244,15 +258,16 @@ void handleWithdrawal(Customer* customer, sqlite3* dbh) {
 		goto enter_withdrawal_amount;
 	}
 
-	_update_account_balance(dbh, customer, current_balance - withdrawal_amount);
+	_update_account_balance(account, current_balance - withdrawal_amount, dbh);
+	_update_transaction_log(account, "Withdrawal", withdrawal_amount, dbh);
 }
 
 
 // handles the database interaction for updating an account balance
-void _update_account_balance(sqlite3* dbh, Customer* customer, int balance) {
+void _update_account_balance(Account* account, int balance, sqlite3* dbh) {
 	stringstream sql;
 	sql << "UPDATE accounts SET balance=" << balance
-		<< " WHERE customer_id=" << customer->getCustomerID();
+		<< " WHERE id=" << account->getAccountID();
 	char* sqlite3_error;
 	int rc = sqlite3_exec(dbh, sql.str().c_str(), NULL, NULL, &sqlite3_error);
 
@@ -262,11 +277,72 @@ void _update_account_balance(sqlite3* dbh, Customer* customer, int balance) {
 		return;
 	}
 
-	// once the database has been updated, update our account object to match
-	// TODO, should we protect against overflowing an int?
-	customer->getAccount()->setBalance(balance);
+	account->setBalance(balance);
 
 	printf("Your new balance is: $%.2f\n", (float)balance / 100.0f);
+}
+
+
+// handles the database interaction for viewing a customer's transaction log
+void handleTransactionHistory(Account* account, sqlite3* dbh) {
+	stringstream sql;
+	sql << "SELECT * FROM transactions WHERE account_id=" 
+		<< account->getAccountID()
+		<< " ORDER BY timestamp DESC";
+
+	char* sqlite3_error;
+	int rc = sqlite3_exec(dbh, sql.str().c_str(),
+		_db_view_transaction, NULL, &sqlite3_error);
+
+	if (SQLITE_OK != rc) {
+		cerr << "Error reading database: " << sqlite3_errmsg(dbh) << endl;
+		sqlite3_free(sqlite3_error);
+		return;
+	}
+}
+
+
+// callback used by sqlite3_exec to print out a Customer's transactions
+static int _db_view_transaction(void* unused, 
+	int argc, char** argv, char** cols)
+{
+	char* timestamp = argv[1];
+	char* type = argv[3];
+	int amount = atoi(argv[4]);
+
+	printf("%s: %s - $%.2f\n", timestamp, type, (float)amount / 100.0f);
+
+	return 0;
+}
+
+
+// handles database interaction for updating the transaction log
+void _update_transaction_log(Account* account, char* txType, int amount, 
+	sqlite3* dbh)
+{
+	// get a useable timestamp from ctime (chop trailing newline)
+	time_t now;
+	time(&now);
+	char* timestamp = ctime(&now);
+	char* trailing_newline = strrchr(timestamp, '\n');
+	*trailing_newline = '\0'; // chop it off
+
+	// insert new transaction into the database
+	stringstream sql;
+	sql << "INSERT INTO transactions (timestamp, account_id, type, amount)"
+		<< " VALUES('" << timestamp << "', "
+		<< account->getAccountID() << ", "
+		<< "'" << txType << "', "
+		<< amount << ")";
+
+	char* sqlite3_error;
+	int rc = sqlite3_exec(dbh, sql.str().c_str(), NULL, NULL, &sqlite3_error);
+
+	if (SQLITE_OK != rc) {
+		cerr << "Error updating database: " << sqlite3_errmsg(dbh) << endl;
+		sqlite3_free(sqlite3_error);
+		return;
+	}
 }
 
 
