@@ -21,7 +21,6 @@ int Account::getBalance(void) {
 
 void Account::setBalance(int balance) {
 	this->balance = balance;
-	// TODO: log balance update in transaction history
 }
 
 int Account::withdrawFunds(int withdrawalAmount) {
@@ -36,8 +35,4 @@ int Account::depositFunds(int depositAmount) {
 
 void Account::printSummary(void) {
 	printf("Account #: %d -- Current Balance: $%.2f\n", this->account_id, (this->balance / 100.0f));
-}
-
-void Account::printHistory(void) {
-	std::cout << "Account history goes here" << std::endl;
 }

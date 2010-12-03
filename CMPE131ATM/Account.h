@@ -17,7 +17,6 @@ public:
 
 	// prints information about the account
 	void printSummary();
-	void printHistory();
 
 protected:
 	int account_id;
