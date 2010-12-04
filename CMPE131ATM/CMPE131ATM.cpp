@@ -288,7 +288,7 @@ void handleTransactionHistory(Account* account, sqlite3* dbh) {
 	stringstream sql;
 	sql << "SELECT * FROM transactions WHERE account_id=" 
 		<< account->getAccountID()
-		<< " ORDER BY timestamp DESC";
+		<< " ORDER BY id DESC";
 
 	char* sqlite3_error;
 	int rc = sqlite3_exec(dbh, sql.str().c_str(),
