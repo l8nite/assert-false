@@ -73,6 +73,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="ClassDiagram1.cd" />
     <None Include="cmpe131atm.sqlite" />
     <None Include="ReadMe.txt" />
     <None Include="sqlite3.def" />
@@ -89,7 +90,9 @@
     <ClCompile Include="Account.cpp" />
     <ClCompile Include="CMPE131ATM.cpp" />
     <ClCompile Include="Customer.cpp" />
-    <ClCompile Include="sqlite3.c" />
+    <ClCompile Include="sqlite3.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
