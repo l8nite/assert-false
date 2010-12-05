@@ -256,6 +256,9 @@ void handleWithdrawal(Account* account, sqlite3* dbh) {
 	if (withdrawal_amount > current_balance) {
 		cout << "You do not have sufficient funds.  Try again." << endl;
 		goto enter_withdrawal_amount;
+	}else if (withdrawal_amount > 25000000){
+		cout << "Your withdrawal exceeds FDIC insured limit or $250,000. Try again." << endl;
+		goto enter_withdrawal_amount;
 	}
 
 	_update_account_balance(account, current_balance - withdrawal_amount, dbh);
