@@ -34,7 +34,10 @@ class Account
 {
 public:
 	/**
-	 * @name Account constructor
+	 * @name Constructors
+	 */
+	/**
+	 * Generic Account constructor
 	 */
 	Account(void);
 
