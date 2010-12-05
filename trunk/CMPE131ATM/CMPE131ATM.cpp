@@ -17,9 +17,10 @@ using namespace std;
  */
 // handles authenticating the customer number and PIN
 Customer* loginCustomer(sqlite3* dbh);
+Account* chooseAccount(Customer* customer, sqlite3* dbh);
 
 // main menu
-void applicationMenuLoop(Customer* customer, sqlite3* dbh);
+void applicationMenuLoop(Customer* customer, Account* account, sqlite3* dbh);
 
 // handles deposit/withdrawal user interaction
 void handleDeposit(Account* account, sqlite3* dbh);
@@ -34,6 +35,10 @@ void handleTransactionHistory(Account* account, sqlite3* dbh);
  */
 // callback used by sqlite3_exec to populate the given Customer instance
 static int _db_load_customer(void* customer, 
+	int argc, char** argv, char** cols);
+
+// callback used by sqlite3_exec to load an account for a customer
+static int _db_load_account(void* customer,
 	int argc, char** argv, char** cols);
 
 // callback used by sqlite3_exec to print out a Customer's transactions
@@ -88,6 +93,7 @@ void main(int argc, _TCHAR* argv[])
 		goto exit;
 	}
 
+	// log in and validate their pin
 	Customer* customer = loginCustomer(dbh);
 
 	if (NULL == customer) { // we couldn't log them in
@@ -95,8 +101,11 @@ void main(int argc, _TCHAR* argv[])
 		goto exit;
 	}
 
+	// choose which account they want to use 
+	Account* account = chooseAccount(customer, dbh);
+
 	// enter the main application loop
-	applicationMenuLoop(customer, dbh);
+	applicationMenuLoop(customer, account, dbh);
 
 	// clean up after ourselves and then exit
 	exit:
@@ -133,14 +142,14 @@ get_customer_number: // execution flow returns here if the user fails to auth
 	Customer* customer = new Customer();
 
 	stringstream sql;
-	sql << "SELECT * FROM accounts WHERE customer_id=" << customer_id
-		<< " AND customer_pin=" << customer_pin;
+	sql << "SELECT * FROM customers WHERE id=" << customer_id
+		<< " AND pin=" << customer_pin;
 	char* sqlite3_error;
 	int rc = sqlite3_exec(dbh, sql.str().c_str(),
 		_db_load_customer, customer, &sqlite3_error);
 
 	if (SQLITE_OK != rc) {
-		cerr << "Error reading database: " << sqlite3_errmsg(dbh) << endl;
+		cerr << "Error reading customers: " << sqlite3_errmsg(dbh) << endl;
 		sqlite3_free(sqlite3_error);
 		delete customer;
 		return NULL;
@@ -158,63 +167,138 @@ get_customer_number: // execution flow returns here if the user fails to auth
 		goto get_customer_number;
 	}
 
-	customer->getAccount()->printSummary();
+	// now load their accounts from the database
+	sql.str("");
+	sql << "SELECT * FROM accounts WHERE customer_id=" << customer_id
+		<< " ORDER BY id ASC";
+	rc = sqlite3_exec(dbh, sql.str().c_str(),
+		_db_load_account, customer, &sqlite3_error);
+
+	if (SQLITE_OK != rc) {
+		cerr << "Error reading accounts: " << sqlite3_errmsg(dbh) << endl;
+		sqlite3_free(sqlite3_error);
+		delete customer;
+		return NULL;
+	}
+
+	// we should always have an account for a customer, otherwise the database
+	// has lost integrity.
+	assert(customer->getAccounts().size() != 0);
 
 	return customer;
 }
 
 
-// callback for database login / loading routine 
+// callback for database login routine 
 static int _db_load_customer(void* customer, 
 	int argc, char** argv, char** cols)
 {
+	// set the customer ID and authorize them
+	((Customer*)customer)->setCustomerID(atol(argv[0]));
+	((Customer*)customer)->setIsAuthorized(1);
+	return 0;
+}
+
+
+// callback for database account loading routine
+static int _db_load_account(void* customer,
+	int argc, char** argv, char** cols)
+{
+	string label;
 	Account* account = new Account();
 
 	// load database row into the account/Customer object
-	// argv = { id, customer_id, customer_pin, balance }
+	// argv = { id, customer_id, balance, label }
 	account->setAccountID(atoi(argv[0]));
-	((Customer*)customer)->setCustomerID(atol(argv[1]));
-	account->setBalance(atoi(argv[3]));
+	account->setBalance(atoi(argv[2]));
 
-	// add account to the customer object, authorize them
-	((Customer*)customer)->setAccount(account);
-	((Customer*)customer)->setIsAuthorized(1);
+	label += argv[3];
+	account->setLabel(label);
+
+	// add account to the customer object
+	((Customer*)customer)->addAccount(account);
 
 	return 0;
 }
 
 
+// if the user has more than one account, let them choose which one they
+// want to work with
+Account* chooseAccount(Customer* customer, sqlite3* dbh) {
+	vector<Account*> accounts = customer->getAccounts();
+
+	if (accounts.size() == 1) {
+		return accounts[0];
+	}
+
+	menu:
+	for (int i = 0; i < accounts.size(); ++i) {
+		cout << (i+1) << ". #" << accounts[i]->getAccountID() << " - "
+			 << accounts[i]->getLabel() << endl;
+	}
+
+	int menu_choice = _repeatedly_prompt_user_for_positive_numeric_input(
+		"Choice? ", "Invalid choice.  Try again.", 0);
+
+	if (menu_choice < 1 || menu_choice > accounts.size()) {
+		cout << "Invalid choice.  Try again." << endl;
+		goto menu;
+	}
+
+	return accounts[menu_choice-1];
+}
+
 // main menu loop
-void applicationMenuLoop(Customer* customer, sqlite3* dbh) {
+void applicationMenuLoop(Customer* customer, Account* account, sqlite3* dbh) {
+	vector<Account*> accounts = customer->getAccounts();
+	
+	summary:
+	account->printSummary();
+
 	menu:
 	cout << "1. Print Account Summary" << endl;
 	cout << "2. View Transaction History" << endl;
 	cout << "3. Deposit Funds" << endl;
 	cout << "4. Withdraw Funds" << endl;
-	cout << "5. Exit" << endl;
+	if (accounts.size() > 1) {
+		cout << "5. Change accounts" << endl;
+		cout << "6. Exit" << endl;
+	}
+	else {
+		cout << "5. Exit" << endl;
+	}
 
 	int menu_choice = _repeatedly_prompt_user_for_positive_numeric_input(
 		"Choice? ", "Invalid choice.  Try again.", 0);
 
-	if (menu_choice < 1 || menu_choice > 5) {
+	if (menu_choice < 1 || menu_choice > (accounts.size() > 1 ? 6 : 5)) {
 		cout << "Invalid choice.  Try again." << endl;
 		goto menu;
 	}
 
 	switch (menu_choice) { // options from the menu above
 	case 1:
-		customer->getAccount()->printSummary();
+		account->printSummary();
 		break;
 	case 2:
-		handleTransactionHistory(customer->getAccount(), dbh);
+		handleTransactionHistory(account, dbh);
 		break;
 	case 3:
-		handleDeposit(customer->getAccount(), dbh);	
+		handleDeposit(account, dbh);	
 		break;
 	case 4:
-		handleWithdrawal(customer->getAccount(), dbh);
+		handleWithdrawal(account, dbh);
 		break;
 	case 5:
+		if (accounts.size() > 1) {
+			account = chooseAccount(customer, dbh);
+			goto summary;
+		}
+		else {
+			return;
+		}
+		break;
+	case 6:
 		return;
 		break;
 	}

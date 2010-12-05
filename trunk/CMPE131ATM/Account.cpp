@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 #include "Account.h"
-#include <iostream>
+
+using namespace std;
 
 Account::Account(void) {
 	this->balance = 0;
@@ -23,6 +24,17 @@ void Account::setBalance(int balance) {
 	this->balance = balance;
 }
 
+string Account::getLabel(void) { 
+	return this->label;
+}
+
+void Account::setLabel(string label) {
+	this->label = label;
+}
+
 void Account::printSummary(void) {
-	printf("Account #: %d -- Current Balance: $%.2f\n", this->account_id, (this->balance / 100.0f));
+	cout << "Account #: " << this->account_id
+		 << " ('" << this->label << "') --"
+		 << " Current Balance: ";
+	printf("$%.2f\n", (float)this->balance / 100.0f);
 }

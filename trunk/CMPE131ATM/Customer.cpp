@@ -2,27 +2,25 @@
 #include "Customer.h"
 
 Customer::Customer(void) {
-	this->account = NULL;
 	this->customer_id = 0;
 	this->is_authorized = 0;
+	this->accounts.clear();
 }
 
 Customer::~Customer(void) {
-	if (this->account) {
-		delete this->account;
+	for (int i = 0; i < this->accounts.size(); ++i) {
+		delete this->accounts[i];
 	}
+	
+	this->accounts.clear();
 }
 
-Account* Customer::getAccount(void) {
-	return this->account;
+vector<Account*> Customer::getAccounts(void) {
+	return this->accounts;
 }
 
-void Customer::setAccount(Account* account) {
-	if (this->account) {
-		delete this->account;
-	}
-
-	this->account = account;
+void Customer::addAccount(Account* account) {
+	this->accounts.push_back(account);
 }
 
 int Customer::getCustomerID(void) {
