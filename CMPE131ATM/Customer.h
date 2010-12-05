@@ -19,6 +19,7 @@
  *
  * Example Usage:
  * @code
+ *
  *	   Customer* customer = new Customer();
  *     customer->setCustomerID(12345);
  *
@@ -35,14 +36,12 @@
  *     for (int i = 0; i < accounts.size(); ++i) {
  *         accounts[i]->printSummary();
  *     }
+ *
  * @endcode
  */
 class Customer
 {
 public:
-	/**
-	 * @name Constructors
-	 */
 	/**
 	 * Generic Customer constructor
 	 */
