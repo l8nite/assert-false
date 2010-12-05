@@ -21,6 +21,7 @@ using namespace std;
  *
  * Example Usage:
  * @code
+ *
  *     Account* account = new Account();
  *
  *     account->setAccountID(555);
@@ -28,6 +29,7 @@ using namespace std;
  *     account->setLabel("Checking");
  *
  *     account->printSummary();
+ *
  * @endcode
  */
 class Account
